@@ -1,16 +1,19 @@
-def process_trajectory(file,path='.',skip=1,output_group='all',center_group='protein',align=False):
+def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='all', center_group='protein', align=False, name0='',):
     import gmxapi as gmx
-    import os    
+    import os
+    
     def did_it_run(command):
-        did_it_run=True
-        if command.output.returncode.result() !=0:
+        
+        did_it_run = True
+        if command.output.returncode.result() != 0:
             print(command.output.erroroutput.result())
             exit
-            did_it_run=False
+            did_it_run = False
         return did_it_run
 
     '''
-    Center structure, align structure, do pbc, skip frames and reduce output of given structure file.
+    Center structure, align structure, do pbc, skip frames and reduce output of
+    given structure file.
       Parameters
       ----------
       path: path to structure file.
@@ -18,57 +21,69 @@ def process_trajectory(file,path='.',skip=1,output_group='all',center_group='pro
       skip: skip every skip frame.
       output_group: output group of index.ndx.
       center_group: center/align group of index.ndx.
+      name: use this name for ouput (optional).
       Returns
       -------
-    
     '''
     
     # Asertions on input
-    assert os.path.exists(path),'Path does not exists.'
-    for f in [file,'index.ndx','topol.tpr']:
+    assert os.path.exists(path), 'Path does not exists.'
+    for f in [file, 'index.ndx', 'topol.tpr']:
         assert os.path.isfile(path+f'/{f}'), f'File {f} does not exist.'
-    
-    assert isinstance(skip,int),'Skip should be int.'
-    
+    assert isinstance(skip,int), 'Skip should be int.'
+
     for st in [path,file,output_group,center_group]:
-        assert isinstance(st,str),f'{st} should be a string.'
+        assert isinstance(st,str), f'{st} should be a string.'
+        
+    assert isinstance(name0,str), f'{name0} should be a string'
     
-    cdminus =os.getcwd()
+
+    
+
+    cdminus = os.getcwd()
     os.chdir(path)
-    
+
     base, extension = file.split('.')
-    for files in [f'{output_group}_pbc_al.{extension}',f'{output_group}_pbc.{extension}','kk.xtc']:
+    
+        # Output name
+    if name0 != '':
+        name0 = name0 + '_'
+    name = f'{name0}{output_group}_sk{skip}_pbc.{extension}'
+    name_al = f'{name0}{output_group}_sk{skip}_pbc_al.{extension}'
+    begin_end = ['-b', str(begin), '-e', str(end)]
+    for files in [name, name_al, 'kk.xtc']:
         if os.path.isfile(files):
             os.remove(files)
-    
+
     #Cluster pbc
-    trjconv0 = gmx.commandline_operation('gmx',arguments=['trjconv', '-skip', str(skip), '-pbc', 'cluster'],
+    trjconv0 = gmx.commandline_operation('gmx',arguments=['trjconv', '-skip', str(skip), '-pbc', 'cluster']+begin_end,
                                     input_files={'-f': f'{base}.{extension}','-n': 'index.ndx'},
                                     stdin=f"{center_group} {output_group}",
                                     output_files={'-o': f'kk.{extension}'})
     trjconv0.run()
     assert did_it_run(trjconv0),'Clustering failed' 
-    
+
     #Center and pbc
     trjconv1 = gmx.commandline_operation('gmx',arguments=['trjconv', '-pbc', 'mol','-center'],
                                     input_files={'-f': f'kk.{extension}','-n': 'index.ndx'},
                                     stdin=f'{center_group} {output_group}',
-                                    output_files={'-o': f'{output_group}_pbc.{extension}'})
+                                    output_files={'-o': name})
     trjconv1.run()
     os.remove(f'kk.{extension}')
-    assert did_it_run(trjconv1),'Pbc failed'
-    
+    assert did_it_run(trjconv1), 'Pbc failed'
+
     #Align
     if align:
         trjconv2 = gmx.commandline_operation('gmx',arguments=['trjconv', '-fit', 'rot+trans'],
                                         input_files={'-f': f'{output_group}_pbc.{extension}','-n': 'index.ndx'},
                                         stdin=f'{center_group} {output_group}',
-                                        output_files={'-o': f'{output_group}_pbc_al.{extension}'})
+                                        output_files={'-o': name_al})
         trjconv2.run()
-        assert did_it_run(trjconv2),'Align failed'
-    
+        assert did_it_run(trjconv2), 'Align failed'
+
     os.chdir(cdminus)
     return
+
 def get_dssp(path,path_top,simplified=True):
     '''
     Calculate and plot the secondary structure as a function of time and split per subunit.

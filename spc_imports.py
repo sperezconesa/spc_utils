@@ -2,7 +2,7 @@ import os
 import re as re
 import subprocess as sp
 import numpy as np
-import datreant as dtr
+# import datreant as dtr
 import pickle as pickle
 import pandas as pd
 import seaborn as sns

@@ -1,3 +1,9 @@
+'''
+This module is just a list of my usual imports and mpl configuration. They can
+be called using:
+from spc_imports import *
+set_up_plt()
+'''
 import os 
 import re as re
 import subprocess as sp

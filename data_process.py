@@ -1,3 +1,6 @@
+'''
+SPC's scripts to process gmx trajectories using gmxapi.
+'''
 def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='all', center_group='protein', align=False, name0='',):
     import gmxapi as gmx
     import os

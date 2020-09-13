@@ -1,3 +1,7 @@
+'''
+Scripts to fech data from the web for my projects. Depends on having activated the GSheets API.
+Info on the website of gspread: https://gspread.readthedocs.io/en/latest/oauth2.html
+'''
 def gsheet_to_csv(gsheet_name,worksheet,csv_filename):
     from gspread import service_account
     from pandas import DataFrame

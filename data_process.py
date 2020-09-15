@@ -51,7 +51,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
     base, extension = file.split('.')
     
         # Output name
-    if name != None:
+    if name == None:
         if name_base != '':
             name_base = name_base + '_'
         name = f'{name_base}{output_group}_sk{skip}_pbc.{extension}'

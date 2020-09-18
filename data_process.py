@@ -22,7 +22,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
       Parameters
       ----------
       path: path to structure file.
-      file: structure file.
+      file: structure file.(xtc,trr,gro,pdb,cpt)
       skip: skip every skip frame.
       output_group: output group of index.ndx.
       center_group: center/align group of index.ndx.
@@ -39,7 +39,8 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
 
     for st in [path,file,output_group,center_group]:
         assert isinstance(st, str), f'{st} should be a string.'
-    assert isinstance(name, str), f'{name} should be a string'
+    if name != None:
+        assert isinstance(name, str), f'{name} should be a string'
     assert isinstance(name_base, str), f'{name_base} should be a string'
     
 
@@ -49,6 +50,9 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
     os.chdir(path)
 
     base, extension = file.split('.')
+    
+    if extension == 'cpt':
+        extension = 'gro'
     
         # Output name
     if name == None:
@@ -65,7 +69,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
 
     #Cluster pbc
     trjconv0 = gmx.commandline_operation('gmx',arguments=['trjconv', '-skip', str(skip), '-pbc', 'cluster']+begin_end,
-                                    input_files = {'-f': f'{base}.{extension}','-n': 'index.ndx'},
+                                    input_files = {'-f': file,'-n': 'index.ndx'},
                                     stdin = f"{center_group} {output_group}",
                                     output_files = {'-o': f'kk.{extension}'})
     trjconv0.run()

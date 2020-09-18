@@ -58,8 +58,12 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
     if name == None:
         if name_base != '':
             name_base = name_base + '_'
-        name = f'{name_base}{output_group}_sk{skip}_pbc.{extension}'
-        name_al = f'{name_base}{output_group}_sk{skip}_pbc_al.{extension}'
+        if extension == 'gro' or extension == 'pdb':
+            name = f'{name_base}{output_group}_pbc.{extension}'
+            name_al = f'{name_base}{output_group}_pbc_al.{extension}'
+        else:
+            name = f'{name_base}{output_group}_sk{skip}_pbc.{extension}'
+            name_al = f'{name_base}{output_group}_sk{skip}_pbc_al.{extension}'
     else:
         name_al = name
     begin_end = ['-b', str(begin), '-e', str(end)]

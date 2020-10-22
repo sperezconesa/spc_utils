@@ -20,8 +20,8 @@ def set_up_plt():
     plt.rcParams["image.cmap"] = "RdYlBu_r"  # coolwarm viridis
     plt.rcParams["axes.labelsize"] = 13
     plt.rcParams["axes.titlesize"] = 14
-    plt.rcParams["legend.fontsize"] = 13
-    ticklabelsize = 12
+    plt.rcParams["legend.fontsize"] = 15
+    ticklabelsize = 14
     plt.rcParams["xtick.labelsize"] = ticklabelsize
     plt.rcParams["ytick.labelsize"] = ticklabelsize
     plt.rcParams["text.latex.preamble"] = [
@@ -30,7 +30,7 @@ def set_up_plt():
         r"\usepackage{mhchem}",
     ]
     # PUT GRID
-    plt.rcParams["axes.facecolor"] = "#EAEAF2"
+    plt.rcParams["axes.facecolor"] = "white" #"#EAEAF2"
     plt.rcParams["axes.edgecolor"] = "black"  # "box" color
     plt.rcParams["grid.color"] = "white"
     plt.rcParams["grid.linestyle"] = "-"

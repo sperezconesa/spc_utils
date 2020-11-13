@@ -23,11 +23,12 @@ def mda_janin_with_CSTV(u,selection):
         'CYS': 'SG',
         'SER': 'OG',
         'THR': 'CG2',
-        'VAL': 'CB1',
+        'VAL': 'CG1',
     }
     resname = np.unique(selection.resnames)
     resid = np.unique(selection.resids)
     assert resname.shape[0] != 1 or resid.shape[0] == 1, 'more than one resid'
+    assert isinstance(u, mda.Universe) , 'u should be a MDAnlaysis universe.'
     if resname[0] in ['CYS', 'SER', 'THR', 'VAL']:
         my_list = []
         for res in selection.residues:
@@ -46,3 +47,62 @@ def mda_janin_with_CSTV(u,selection):
         except:
             output_angles = None
     return output_angles
+def get_rmsd(u, ref=None, sel_str='name CA and protein', skip=1,sel_str_al=None, in_memory = False ):
+    '''
+    Takes in a MDAnalysis universe and a selection of that universe and calculate the RMSD
+    with a provided reference or the  initial snapshot.
+      Parameters
+      ----------
+      u: MDAnalysis universe.
+      ref: MDAnalysis snapshot used as reference.
+      sel_str: selection string of the universe containing the atoms to calculate the RMSD.
+      sel_str_al: selection string of the universe containing the atoms to align the trajectory.
+      in_memory: Do you want to print a temp.xtc or do everything in memory.
+      Returns
+      -------
+      rmsd: numpy of time versus RMSD.
+    '''
+    import MDAnalysis as mda
+    import numpy as np
+    import os 
+    from MDAnalysis.analysis import rms
+    from MDAnalysis.analysis.align import AlignTraj
+
+    assert isinstance(u, mda.Universe) , 'u should be a MDAnlaysis universe.'
+    assert isinstance(ref, mda.Universe) or ref == None , 'ref should be a MDAnlaysis universe or None.'
+    assert isinstance(sel_str, str), 'sel_str should be string.'
+    assert isinstance(skip, int) and skip > 0 , 'Skip should be int.'
+    assert isinstance(sel_str_al, str) or sel_str_al == None, 'sel_str_al should be string.'
+    assert isinstance(in_memory, bool), 'in_memory should be a bool.'
+
+    if in_memory:
+        print('This is not yet implemented')
+        return
+
+    if sel_str_al == None:
+        sel_str_al = sel_str
+    if ref == None:
+        ref_CA=u.select_atoms(sel_str)
+        ref = u.copy()
+    else:
+        ref_CA=ref.select_atoms(sel_str)
+    l0 = []
+    t0 = []
+    
+    if in_memory == True:
+        a = AlignTraj(u, ref, select=sel_str_al,in_memory=True).run()
+    else:
+        AlignTraj(u, ref, select=sel_str_al, filename='tmp.xtc').run()
+        u.trajectory[0]
+        u.select_atoms('all').write('tmp.pdb')
+        u = mda.Universe('tmp.pdb','tmp.xtc')
+        
+    trj_CA=u.select_atoms(sel_str)
+    for i, ts in enumerate(u.trajectory[::skip]):
+        l0.append([ts.dt*i,rms.rmsd(trj_CA.positions,ref_CA.positions,superposition=False)])
+        t0.append([ts.dt])
+    rmsd = np.array(l0)
+    if in_memory == False:
+        os.remove('tmp.pdb')
+        os.remove('tmp.xtc')
+    return rmsd,np.array(t0)

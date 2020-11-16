@@ -48,7 +48,7 @@ def mda_janin_with_CSTV(u,selection):
         except:
             output_angles = None
     return output_angles
-def get_rmsd(u, ref=None, sel_str='name CA and protein', skip=1,sel_str_al=None, in_memory = False ):
+def get_rmsd(u, ref=None, sel_str='name CA and protein',sel_str_al=None, write_trj = False, trj_path= 'align.xtc' ):
     '''
     Takes in a MDAnalysis universe and a selection of that universe and calculate the RMSD
     with a provided reference or the  initial snapshot.
@@ -58,27 +58,26 @@ def get_rmsd(u, ref=None, sel_str='name CA and protein', skip=1,sel_str_al=None,
       ref: MDAnalysis snapshot used as reference.
       sel_str: selection string of the universe containing the atoms to calculate the RMSD.
       sel_str_al: selection string of the universe containing the atoms to align the trajectory.
-      in_memory: Do you want to print a temp.xtc or do everything in memory.
+      write_trj: Do you want to write the trajectory.
+      trj_path: Path to write trajectory.
       Returns
       -------
       rmsd: numpy of time versus RMSD.
     '''
     import MDAnalysis as mda
     import numpy as np
-    import os 
+    import os
     from MDAnalysis.analysis import rms
     from MDAnalysis.analysis.align import AlignTraj
 
     assert isinstance(u, mda.Universe) , 'u should be a MDAnlaysis universe.'
     assert isinstance(ref, mda.Universe) or ref == None , 'ref should be a MDAnlaysis universe or None.'
     assert isinstance(sel_str, str), 'sel_str should be string.'
-    assert isinstance(skip, int) and skip > 0 , 'Skip should be int.'
     assert isinstance(sel_str_al, str) or sel_str_al == None, 'sel_str_al should be string.'
-    assert isinstance(in_memory, bool), 'in_memory should be a bool.'
+    assert isinstance(write_trj, bool), 'write_trj should be a bool.'
+    assert isinstance(trj_path, str), 'trj_path should be a str.'
 
-    if in_memory:
-        print('This is not yet implemented')
-        return
+
 
     if sel_str_al == None:
         sel_str_al = sel_str
@@ -87,26 +86,21 @@ def get_rmsd(u, ref=None, sel_str='name CA and protein', skip=1,sel_str_al=None,
         ref = u.copy()
     else:
         ref_CA=ref.select_atoms(sel_str)
-    l0 = []
-    t0 = []
-    
-    if in_memory == True:
-        a = AlignTraj(u, ref, select=sel_str_al,in_memory=True).run()
-    else:
-        AlignTraj(u, ref, select=sel_str_al, filename='tmp.xtc').run()
+
+    t = []
+
+    if write_trj == True:
+        rmsd = AlignTraj(u, ref, select=sel_str_al, filename=trj_path).run().rmsd
         u.trajectory[0]
-        u.select_atoms('all').write('tmp.pdb')
-        u = mda.Universe('tmp.pdb','tmp.xtc')
-        
-    trj_CA=u.select_atoms(sel_str)
-    for i, ts in enumerate(u.trajectory[::skip]):
-        l0.append([ts.dt*i,rms.rmsd(trj_CA.positions,ref_CA.positions,superposition=False)])
-        t0.append([ts.dt])
-    rmsd = np.array(l0)
-    if in_memory == False:
-        os.remove('tmp.pdb')
-        os.remove('tmp.xtc')
-    return rmsd,np.array(t0)
+    else:
+        rmsd = AlignTraj(u, ref, select=sel_str_al).run().rmsd
+        u.trajectory[0]
+
+
+    for i, ts in enumerate(u.trajectory):
+        t.append(ts.dt*i)
+
+    return np.vstack([np.array(t).flatten(),rmsd]).T
 def get_dssp(path,path_top,simplified=True):
     '''
     Calculate and plot the secondary structure as a function of time and split per subunit.

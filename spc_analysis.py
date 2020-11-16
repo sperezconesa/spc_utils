@@ -156,3 +156,32 @@ def get_dssp(path,path_top,simplified=True):
         a.set_ylabel("resid")
     fig.colorbar(k[-1],ax=ax,ticks=range(len(ss)),format=formatter)
     return fig,ax
+def distance_atoms(u,sel1,sel2):
+    '''
+    Calculate the distance between two atoms (sel1, sel2) as a function of time in the trajectory trj.
+
+    Parameters
+    ----------
+    u: MDA universe to analyz trajectory to analyze. 
+    sel1: MDA selection containing 1 atom.
+    sel2: MDA selection containing 1 atom.
+      
+    Returns
+    -------
+    d: matplotlib figure object.
+    '''
+    from MDAnalysis.analysis.distances import dist
+    from MDAnalysis import Universe
+    from MDAnalysis import AtomGroup
+    from numpy import array
+
+    assert isinstance(u, Universe) , 'u should be a MDAnlaysis universe.'
+    assert isinstance(sel1, Universe) , 'sel1 should be a MDAnlaysis universe.'
+    assert isinstance(sel2, Universe) , 'sel2 should be a MDAnlaysis universe.'
+
+    d = []
+    g1 = u.select_atoms(sel1)
+    g2 = u.select_atoms(sel2)
+    for ts in u.trajectory:
+        d.append([ts.time/1000,dist(g1, g2, box=ts.dimensions)[2,0]])
+    return array(d)

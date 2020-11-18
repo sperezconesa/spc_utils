@@ -1,6 +1,27 @@
 '''
 SPC's module with visualization utils.
 '''
+def format_plus_minus_error(value, error, format_value='.1f', format_error='.1f'):
+    '''
+    Takes in two iterables of floats and combines them to form a value+-error
+      Parameters
+      ----------
+      value: iterable of floats containing the values.
+      error: iterable of floats containing the error of the value.
+      format_value: format string of value.
+      format_error: format string of error.
+      Returns
+      -------
+      plus_minus: list of strings value+-error.
+    '''
+    from collections.abc import Iterable
+    assert isinstance(format_value,str), 'Format value is not a string.'
+    assert isinstance(format_error,str), 'Format error is not a string.'
+    assert isinstance(value, Iterable) and all(isinstance(x, float) for x in value), 'Value is not an iterable of floats.'
+    assert isinstance(error, Iterable) and all(isinstance(x, float) for x in error), 'Error is not an iterable of floats.'
+    string = '{v:' + format_value + '} \u00B1 {e:' + format_error + '}'
+    plus_minus = [ string.format(v=v, e=e) for v, e in zip(value,error) ]
+    return plus_minus
 def fasta(filename):
     def fasta_in(data=''):
         from IPython.display import display

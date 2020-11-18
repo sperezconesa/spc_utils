@@ -156,10 +156,10 @@ def distance_atoms(u,sel1,sel2):
 
     Parameters
     ----------
-    u: MDA universe to analyz trajectory to analyze. 
+    u: MDA universe to analyz trajectory to analyze.
     sel1: MDA selection containing 1 atom.
     sel2: MDA selection containing 1 atom.
-      
+
     Returns
     -------
     d: matplotlib figure object.
@@ -168,14 +168,15 @@ def distance_atoms(u,sel1,sel2):
     from MDAnalysis import Universe
     from MDAnalysis import AtomGroup
     from numpy import array
+    from tqdm import tqdm
 
     assert isinstance(u, Universe) , 'u should be a MDAnlaysis universe.'
-    assert isinstance(sel1, Universe) , 'sel1 should be a MDAnlaysis universe.'
-    assert isinstance(sel2, Universe) , 'sel2 should be a MDAnlaysis universe.'
+    assert isinstance(sel1, AtomGroup) , 'sel1 should be a MDAnlaysis universe.'
+    assert isinstance(sel2, AtomGroup) , 'sel2 should be a MDAnlaysis universe.'
+    assert sel1.n_atoms == 1 , 'sel1 should have 1 atom.'
+    assert sel2.n_atoms == 1 , 'sel2 should have 1 atom.'
 
     d = []
-    g1 = u.select_atoms(sel1)
-    g2 = u.select_atoms(sel2)
-    for ts in u.trajectory:
-        d.append([ts.time/1000,dist(g1, g2, box=ts.dimensions)[2,0]])
+    for i, ts in tqdm(enumerate(u.trajectory), total=u.trajectory.n_frames):
+        d.append([ts.dt*i,dist(sel1, sel2, box=ts.dimensions)[2,0]])
     return array(d)

@@ -175,7 +175,7 @@ def AnnotateResidues(path, ax, x_lims, fontfamily=None, fontsize=None, H_color='
 
     ax.set_xlim([x_lims[0], x_lims[1]])
     return ax
-def my_plot_ppc(trace, label_array, **kwargs):
+def my_plot_ppc(trace, label_array, enc_dic=None, **kwargs):
     '''
     Plots the posterior predictive check associated to a arviz inference object in which
     the model's data has been structured with dataframe encoding during the model building
@@ -185,6 +185,7 @@ def my_plot_ppc(trace, label_array, **kwargs):
       ----------
       trace: arviz inference object containing observed_data and posterior_predicitive.
       label_array: array or dataframe with the labels of the observed data.
+      enc_dic: dictionary relating codes with names.
       Returns
       -------
       fig, ax: matplolib figures and axes.
@@ -194,6 +195,7 @@ def my_plot_ppc(trace, label_array, **kwargs):
     from arviz import plot_ppc
     from arviz import InferenceData
     from collections.abc import Iterable
+    from math import ceil
 
     assert isinstance(label_array, Iterable) and all(isinstance(x, int) for x in label_array) and all(label_array >=0), 'label_array is not an iterable of non-negative ints.'
     assert isinstance(trace,InferenceData), 'trace is not an arviz inference object'
@@ -202,29 +204,43 @@ def my_plot_ppc(trace, label_array, **kwargs):
     key = list(trace.observed_data.data_vars.keys())
     assert len(key) == 1, 'There should be only one data_var in trace.posterior_predicitve'
     key=key[0]
+    assert isinstance(enc_dic,dict) or enc_dic == None, 'enc_dic should be a dictionary'
+
 
     allowed_plot_kwargs =['alpha']
     plot_kwargs ={k:kwargs.pop(k) for k,v in list(kwargs.items()) if k in allowed_plot_kwargs}
 
     labels = unique(label_array)
     n_plots = labels.shape[0]
-    n_rows=n_plots//4+1
+    n_rows=ceil(n_plots/4)
+    print(n_rows,n_plots/4,ceil(n_plots/4))
     if n_rows == 1:
         sizex = 7.5 * n_plots
         n_cols = n_plots
     else:
         sizex = 5*4
-    fig, ax = subplots(n_rows, n_cols, figsize=(sizex,5.5*n_rows), sharex=True, sharey=True)
+        n_cols = 4
+
+    if enc_dic == None:
+        enc_dic ={ i:i for i in range(n_plots)}
+    else:
+        print(array(enc_dic.keys()))
+        assert all(isinstance(x, int) for x in enc_dic.keys()) and all(array(list(enc_dic.keys())) >= 0), 'enc_dic is not made of non-negatives.'
+        assert len(list(enc_dic.keys())) >= n_plots, 'enc_dic does not have enough keys'
+
+
+    fig, ax = subplots(n_rows, n_cols, figsize=(sizex,5.5*n_rows), sharex=False, sharey=False)
     ax = ax.flatten()
     for i in range(n_plots):
         trace.observed_data['ppc'] = trace.observed_data[key][array(label_array) == i]
         trace.posterior_predictive['ppc'] = trace.posterior_predictive[key][:,:,:,i]
         plot_ppc(trace, var_names = 'ppc', legend=False, ax=ax[i], **plot_kwargs)
-        ax[i].set_xlabel(f'ppc var {i}')
+        ax[i].set_xlabel(f'ppc var {enc_dic[i]}')
     ax[0].legend()
     if n_rows > 1:
-        for i in range(4 - n_plots % 4):
-            fig.delaxes(ax[-i-1])
+        if n_plots % 4 != 0:
+            for i in range(4 - n_plots % 4):
+                fig.delaxes(ax[-i-1])
     fig.tight_layout()
     trace.posterior_predictive = trace.posterior_predictive.drop('ppc')
     trace.observed_data = trace.observed_data.drop('ppc')

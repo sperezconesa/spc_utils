@@ -150,7 +150,7 @@ def get_dssp(path,path_top,simplified=True):
         a.set_ylabel("resid")
     fig.colorbar(k[-1],ax=ax,ticks=range(len(ss)),format=formatter)
     return fig,ax
-def distance_atoms(u,sel1,sel2):
+def distance_atoms(u,sel1,sel2,progressbar=True):
     '''
     Calculate the distance between two atoms (sel1, sel2) as a function of time in the trajectory trj.
 
@@ -159,6 +159,7 @@ def distance_atoms(u,sel1,sel2):
     u: MDA universe to analyz trajectory to analyze.
     sel1: MDA selection containing 1 atom.
     sel2: MDA selection containing 1 atom.
+    progressbar: Show progressbar.
 
     Returns
     -------
@@ -173,10 +174,11 @@ def distance_atoms(u,sel1,sel2):
     assert isinstance(u, Universe) , 'u should be a MDAnlaysis universe.'
     assert isinstance(sel1, AtomGroup) , 'sel1 should be a MDAnlaysis universe.'
     assert isinstance(sel2, AtomGroup) , 'sel2 should be a MDAnlaysis universe.'
+    assert isinstance(progressbar, bool) , 'progressbar should be boolean.'
     assert sel1.n_atoms == 1 , 'sel1 should have 1 atom.'
     assert sel2.n_atoms == 1 , 'sel2 should have 1 atom.'
 
     d = []
-    for i, ts in tqdm(enumerate(u.trajectory), total=u.trajectory.n_frames):
+    for i, ts in tqdm(enumerate(u.trajectory), total=u.trajectory.n_frames, disable= not progressbar):
         d.append([ts.dt*i,dist(sel1, sel2, box=ts.dimensions)[2,0]])
     return array(d)

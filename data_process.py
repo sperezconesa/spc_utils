@@ -91,7 +91,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
     #Align
     if align:
         trjconv2 = gmx.commandline_operation('gmx',arguments=['trjconv', '-fit', 'rot+trans'],
-                                        input_files = {'-f': f'{output_group}_pbc.{extension}','-n': 'index.ndx'},
+                                        input_files = {'-f': name,'-n': 'index.ndx'},
                                         stdin = f'{center_group} {output_group}',
                                         output_files = {'-o': name_al})
         trjconv2.run()

@@ -3,6 +3,7 @@ Set of python wrappers of the os libray to make things cleaner
 and avoid annoing things of os.
 '''
 import os, errno
+from shutil import copytree
 
 def remove(filename):
     '''
@@ -19,3 +20,16 @@ def mkdir(filename):
     Call makedirs of os and not give error if path exists
     '''
     os.makedirs(filename, exist_ok=True)
+
+def copy(input_path, out_path,verbose=True):
+    '''
+    Copy a file and if already there do nothing or give a message.
+    '''
+    assert isinstance(verbose, bool), 'verbose should be a bool.'
+    assert os.path.isfile(input_path) or  os.path.isdir(input_path) ,'Input  path does not exisist.'
+    try:
+        copytree(input_path, out_path)
+    except OSError as e:
+        if verbose:
+            print('already there')
+

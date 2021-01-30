@@ -48,7 +48,7 @@ def mda_janin_with_CSTV(u,selection):
         except:
             output_angles = None
     return output_angles
-def get_rmsd(u, ref=None, sel_str='name CA and protein',sel_str_al=None, write_trj = False, trj_path= 'align.xtc' ):
+def get_rmsd(u, ref=None, sel_str='name CA and protein',sel_str_al=None, write_trj = False, step=1, stop=None, start=0, verbose=True, trj_path= 'align.xtc' ):
     '''
     Takes in a MDAnalysis universe and a selection of that universe and calculate the RMSD
     with a provided reference or the  initial snapshot.
@@ -60,6 +60,10 @@ def get_rmsd(u, ref=None, sel_str='name CA and protein',sel_str_al=None, write_t
       sel_str_al: selection string of the universe containing the atoms to align the trajectory.
       write_trj: Do you want to write the trajectory.
       trj_path: Path to write trajectory.
+      start: start frame.
+      stop: last frame.
+      step: step between frames.
+      verbose: verbose printing.
       Returns
       -------
       rmsd: numpy of time versus RMSD.
@@ -69,13 +73,18 @@ def get_rmsd(u, ref=None, sel_str='name CA and protein',sel_str_al=None, write_t
     import os
     from MDAnalysis.analysis import rms
     from MDAnalysis.analysis.align import AlignTraj
+    from tqdm import tqdm
 
     assert isinstance(u, mda.Universe) , 'u should be a MDAnlaysis universe.'
     assert isinstance(ref, mda.Universe) or ref == None , 'ref should be a MDAnlaysis universe or None.'
     assert isinstance(sel_str, str), 'sel_str should be string.'
     assert isinstance(sel_str_al, str) or sel_str_al == None, 'sel_str_al should be string.'
     assert isinstance(write_trj, bool), 'write_trj should be a bool.'
+    assert isinstance(verbose, bool), 'verbose should be a bool.'
     assert isinstance(trj_path, str), 'trj_path should be a str.'
+    assert isinstance(step, int) or step == None , 'step should be int or None.'
+    assert isinstance(stop, int) or stop == None , 'stop should be int or None.'
+    assert isinstance(start, int) or start == None , 'start should be int or None.'
 
 
 
@@ -90,14 +99,14 @@ def get_rmsd(u, ref=None, sel_str='name CA and protein',sel_str_al=None, write_t
     t = []
 
     if write_trj == True:
-        rmsd = AlignTraj(u, ref, select=sel_str_al, filename=trj_path).run().rmsd
+        rmsd = AlignTraj(u, ref, select=sel_str_al, filename=trj_path).run(start=start,stop=stop,step=step, verbose=verbose).rmsd
         u.trajectory[0]
     else:
-        rmsd = AlignTraj(u, ref, select=sel_str_al).run().rmsd
+        rmsd = AlignTraj(u, ref, select=sel_str_al).run(start=start,stop=stop,step=step, verbose=verbose).rmsd
         u.trajectory[0]
 
 
-    for i, ts in enumerate(u.trajectory):
+    for i, ts in tqdm(enumerate(u.trajectory[start:stop:step]), total=u.trajectory.n_frames/step-1, disable=not verbose):
         t.append(ts.dt*i)
 
     return np.vstack([np.array(t).flatten(),rmsd]).T

@@ -3,7 +3,7 @@ SPC's scripts to process gmx trajectories using gmxapi.
 '''
 
 
-def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='all', center_group='protein', align=False, name_base='', name=None):
+def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='all', center_group='protein', align=False, name_base='', name=None,  ndx_path='index.ndx'):
     
     
     import gmxapi as gmx
@@ -28,12 +28,13 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
       center_group: center/align group of index.ndx.
       name_base: use this name to start the name output.
       name: use this name for the output
+      ndx_path: index file path. 
       Returns
       -------
     '''
     # Asertions on input
     assert os.path.exists(path), 'Path does not exists.'
-    for f in [file, 'index.ndx', 'topol.tpr']:
+    for f in [file, ndx_path, 'topol.tpr']:
         assert os.path.isfile(path + f'/{f}'), f'File {f} does not exist.'
     assert isinstance(skip, int), 'Skip should be int.'
 
@@ -73,7 +74,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
 
     #Cluster pbc
     trjconv0 = gmx.commandline_operation('gmx',arguments=['trjconv', '-skip', str(skip), '-pbc', 'cluster']+begin_end,
-                                    input_files = {'-f': file,'-n': 'index.ndx'},
+                                    input_files = {'-f': file,'-n': ndx_path},
                                     stdin = f"{center_group} {output_group}",
                                     output_files = {'-o': f'kk.{extension}'})
     trjconv0.run()
@@ -81,7 +82,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
 
     #Center and pbc
     trjconv1 = gmx.commandline_operation('gmx',arguments=['trjconv', '-pbc', 'mol','-center'],
-                                    input_files={'-f': f'kk.{extension}','-n': 'index.ndx'},
+                                    input_files={'-f': f'kk.{extension}','-n': ndx_path},
                                     stdin = f'{center_group} {output_group}',
                                     output_files = {'-o': name})
     trjconv1.run()
@@ -91,7 +92,7 @@ def process_trajectory(file, path='.', begin=0,end=1.e+20,skip=1, output_group='
     #Align
     if align:
         trjconv2 = gmx.commandline_operation('gmx',arguments=['trjconv', '-fit', 'rot+trans'],
-                                        input_files = {'-f': name,'-n': 'index.ndx'},
+                                        input_files = {'-f': name,'-n': ndx_path},
                                         stdin = f'{center_group} {output_group}',
                                         output_files = {'-o': name_al})
         trjconv2.run()

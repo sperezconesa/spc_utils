@@ -33,3 +33,19 @@ def copy_dir(input_path, out_path,verbose=True):
         if verbose:
             print('already there')
 
+def natural_sort(l):
+    '''
+    Takes as input a list l of strings and sorts it with natural order.
+      Parameters
+      ----------
+      l: list of strings.
+      Returns
+      -------
+      l sorted
+    '''
+    assert isinstance(l,list), "l is not a list!"
+    for i in l:
+        assert isinstance(i,str), "List contains non-string elements."
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)

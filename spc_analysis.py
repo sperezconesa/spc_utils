@@ -159,35 +159,45 @@ def get_dssp(path,path_top,simplified=True):
         a.set_ylabel("resid")
     fig.colorbar(k[-1],ax=ax,ticks=range(len(ss)),format=formatter)
     return fig,ax
-def distance_atoms(u,sel1,sel2,progressbar=True):
-    '''
-    Calculate the distance between two atoms (sel1, sel2) as a function of time in the trajectory trj.
+
+def distance_atom_groups(u, sel1, sel2, progressbar=True, center_of_mass=False):
+    """
+    Calculate the distance between the centers of geometry (or mass) between two groups (sel1, sel2) as a function of time in the trajectory trj.
 
     Parameters
     ----------
     u: MDA universe to analyz trajectory to analyze.
-    sel1: MDA selection containing 1 atom.
-    sel2: MDA selection containing 1 atom.
+    sel1: MDA selection containing at least 1 atom.
+    sel2: MDA selection containing at least 1 atom.
+    center_of_mass: Use the center of mass instead of center of geometry.
     progressbar: Show progressbar.
 
     Returns
     -------
     d: matplotlib figure object.
-    '''
-    from MDAnalysis.analysis.distances import dist
+    """
     from MDAnalysis import Universe
     from MDAnalysis import AtomGroup
     from numpy import array
     from tqdm import tqdm
+    from numpy.linalg import norm
 
-    assert isinstance(u, Universe) , 'u should be a MDAnlaysis universe.'
-    assert isinstance(sel1, AtomGroup) , 'sel1 should be a MDAnlaysis universe.'
-    assert isinstance(sel2, AtomGroup) , 'sel2 should be a MDAnlaysis universe.'
-    assert isinstance(progressbar, bool) , 'progressbar should be boolean.'
-    assert sel1.n_atoms == 1 , 'sel1 should have 1 atom.'
-    assert sel2.n_atoms == 1 , 'sel2 should have 1 atom.'
+    assert isinstance(u, Universe), "u should be a MDAnlaysis universe."
+    assert isinstance(sel1, AtomGroup), "sel1 should be a MDAnlaysis universe."
+    assert isinstance(sel2, AtomGroup), "sel2 should be a MDAnlaysis universe."
+    assert isinstance(progressbar, bool), "progressbar should be boolean."
+    assert sel1.n_atoms >= 1, "sel1 should have at least 1 atom."
+    assert sel2.n_atoms >= 1, "sel2 should have at least 1 atom."
 
     d = []
-    for i, ts in tqdm(enumerate(u.trajectory), total=u.trajectory.n_frames, disable= not progressbar):
-        d.append([ts.dt*i,dist(sel1, sel2, box=ts.dimensions)[2,0]])
+    for i, ts in tqdm(
+        enumerate(u.trajectory), total=u.trajectory.n_frames, disable=not progressbar
+    ):
+        if center_of_mass:
+            csel1 = sel1.center_of_mass()
+            csel2 = sel2.center_of_mass()
+        else:
+            csel1 = sel1.centroid()
+            csel2 = sel2.centroid()
+        d.append([ts.dt * i, norm(csel1 - csel2)])
     return array(d)

@@ -43,9 +43,10 @@ def natural_sort(l):
       -------
       l sorted
     '''
+    from re import split
     assert isinstance(l,list), "l is not a list!"
     for i in l:
         assert isinstance(i,str), "List contains non-string elements."
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    alphanum_key = lambda key: [ convert(c) for c in split('([0-9]+)', key) ] 
     return sorted(l, key = alphanum_key)

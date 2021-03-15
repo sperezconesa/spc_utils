@@ -4,7 +4,7 @@ SPC's scripts to process gmx trajectories using gmxapi.
 
 
 def process_trajectory(
-    file,
+    files,
     path=".",
     begin=0,
     end=1.0e20,
@@ -16,6 +16,7 @@ def process_trajectory(
     name=None,
     ndx_path="index.ndx",
     tpr_path="topol.tpr",
+    cat_overwrite=True,
 ):
 
     import os
@@ -32,43 +33,76 @@ def process_trajectory(
 
     """
     Center structure, align structure, do pbc, skip frames and reduce output of
-    given structure file.
+    given structure file or files.
       Parameters
       ----------
-      path: path to structure file.
-      file: structure file.(xtc,trr,gro,pdb,cpt)
+      files: structure file or files.(xtc,trr,gro,pdb,cpt)
+      path: path to structure file/s.
       skip: skip every skip frame.
       output_group: output group of index.ndx.
       center_group: center/align group of index.ndx.
       name_base: use this name to start the name output.
       name: use this name for the output
-      ndx_path: index file path. 
-      tpr_path: tpr file path. 
+      ndx_path: index file path.
+      tpr_path: tpr file path.
       Returns
       -------
     """
     # Asertions on input
     assert os.path.exists(path), "Path does not exists."
-    for f in [file, ndx_path, tpr_path]:
+    assert isinstance(files, str) or isinstance(
+        files, list
+    ), "File/s should be a string or list"
+    if isinstance(files, str):
+        assert os.path.isfile(path + f"/{files}"), (
+            "File" + files + " does not exist."
+        )
+    else:
+        for f in files:
+            assert isinstance(f, str), "File content of files must be str."
+            assert os.path.isfile(path + f"/{f}"), (
+                "File" + f + " does not exist."
+            )
+
+    for f in [ndx_path, tpr_path]:
         assert os.path.isfile(path + f"/{f}"), "File" + f + " does not exist."
     assert isinstance(skip, int), "Skip should be int."
 
-    for st in [path, file, output_group, center_group]:
+    for st in [path, output_group, center_group]:
         assert isinstance(st, str), f"{st} should be a string."
-    if name != None:
+    if name is not None:
         assert isinstance(name, str), f"{name} should be a string"
     assert isinstance(name_base, str), f"{name_base} should be a string"
 
     cdminus = os.getcwd()
     os.chdir(path)
 
-    base, extension = file.split(".")
+    if isinstance(files, list):
+        if cat_overwrite:
+            args = ["trjcat"]
+        else:
+            args = ["trjcat -nooverwrite"]
+
+        catcomm = gmx.commandline_operation(
+            "gmx",
+            arguments=["trjcat"],
+            input_files={"-f": files},
+            output_files={"-o": "cat.xtc"},
+        )
+        catcomm.run()
+        assert did_it_run(catcomm), "Concating failed failed"
+        file = "cat.xtc"
+        extension = "xtc"
+        print(files)
+    else:
+        base, extension = files.split(".")
+        file = files
 
     if extension == "cpt":
         extension = "gro"
 
         # Output name
-    if name == None:
+    if name is None:
         if name_base != "":
             name_base = name_base + "_"
         if extension == "gro" or extension == "pdb":
@@ -80,9 +114,9 @@ def process_trajectory(
     else:
         name_al = name
     begin_end = ["-b", str(begin), "-e", str(end)]
-    for files in [name, name_al, "kk.xtc"]:
-        if os.path.isfile(files):
-            os.remove(files)
+    for f in [name, name_al, "kk.xtc"]:
+        if os.path.isfile(f):
+            os.remove(f)
 
     # Cluster pbc
     trjconv0 = gmx.commandline_operation(

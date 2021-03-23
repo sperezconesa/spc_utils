@@ -45,24 +45,24 @@ def process_trajectory(
       name: use this name for the output
       ndx_path: index file path.
       tpr_path: tpr file path.
+      cat_overwrite: overwrite frames when concating.
       Returns
       -------
     """
     # Asertions on input
+    assert isinstance(cat_overwrite, bool), "cat_overwrite should be bool"
     assert os.path.exists(path), "Path does not exists."
     assert isinstance(files, str) or isinstance(
         files, list
     ), "File/s should be a string or list"
     if isinstance(files, str):
-        assert os.path.isfile(path + f"/{files}"), (
-            "File" + files + " does not exist."
-        )
+        assert os.path.isfile(path + f"/{files}"), "File" + files + " does not exist."
     else:
         for f in files:
             assert isinstance(f, str), "File content of files must be str."
-            assert os.path.isfile(path + f"/{f}"), (
-                "File" + f + " does not exist."
-            )
+            assert os.path.isfile(path + f"/{f}"), "File" + f + " does not exist."
+            base, extension = f.split(".")
+            assert extension == "xtc", "Can only concat xtcs."
 
     for f in [ndx_path, tpr_path]:
         assert os.path.isfile(path + f"/{f}"), "File" + f + " does not exist."
@@ -81,11 +81,11 @@ def process_trajectory(
         if cat_overwrite:
             args = ["trjcat"]
         else:
-            args = ["trjcat -nooverwrite"]
+            args = ["trjcat", "-cat"]
 
         catcomm = gmx.commandline_operation(
             "gmx",
-            arguments=["trjcat"],
+            arguments=args,
             input_files={"-f": files},
             output_files={"-o": "cat.xtc"},
         )
@@ -93,7 +93,6 @@ def process_trajectory(
         assert did_it_run(catcomm), "Concating failed failed"
         file = "cat.xtc"
         extension = "xtc"
-        print(files)
     else:
         base, extension = files.split(".")
         file = files
@@ -121,8 +120,7 @@ def process_trajectory(
     # Cluster pbc
     trjconv0 = gmx.commandline_operation(
         "gmx",
-        arguments=["trjconv", "-skip", str(skip), "-pbc", "cluster"]
-        + begin_end,
+        arguments=["trjconv", "-skip", str(skip), "-pbc", "cluster"] + begin_end,
         input_files={"-f": file, "-n": ndx_path, "-s": tpr_path},
         stdin=f"{center_group} {output_group}",
         output_files={"-o": f"kk.{extension}"},
@@ -215,11 +213,7 @@ def get_dssp(path, path_top, simplified=True):
     fig, ax = plt.subplots(n, 1, figsize=(17, 5 * n))
     k = []
     for segid, a in zip(np.split(dssp0.T, 4), ax.flat):
-        k.append(
-            a.pcolor(
-                time, resid, segid, cmap=plt.cm.get_cmap("tab10", len(ss))
-            )
-        )
+        k.append(a.pcolor(time, resid, segid, cmap=plt.cm.get_cmap("tab10", len(ss))))
         formatter = plt.FuncFormatter(lambda val, loc: ss_name[val])
         a.set_xlabel("t (ns)")
         a.set_ylabel("resid")

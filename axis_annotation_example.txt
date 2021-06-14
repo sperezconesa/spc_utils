@@ -1,0 +1,8 @@
+# Type start end name
+H  26 50 TM1
+L  50 62
+H   62 73 PH
+L 73 75
+SF 75 80
+L 80 88
+H 88 121 TM2
